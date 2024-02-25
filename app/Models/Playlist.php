@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * In real life I would prefer the thin models approach, so I would move the logic from the playlist model to the playlist service provider.
+ * But anyway for such a task not supposed to be extended it would be over-engineering.
+ * Also the artist_id field is not the only solution and can cause some negative side effects - update/create model somewhere else without validation.
+ * I tried to solve it with locked flag. It would be safer to have only track_id in the playlist.
+ * But it would require more logic for position calculation.
+ */
+
 class Playlist extends Model
 {
     use HasFactory;
@@ -50,7 +58,7 @@ class Playlist extends Model
                 throw new \Exception('Track not found in the queue.');
             }
             self::$locked = false;
-            //Need to stop playing all tracks before starting new one
+            //Need to stop playing all tracks before starting a new one
             self::stopPlaying();
 
             $playlistItem->playing = true;
@@ -75,7 +83,7 @@ class Playlist extends Model
 
     /**
      * Add track to the playlist
-     * Find highest position for the artists and add track to the end of the artists sublist
+     * Find the highest position for the artists and add track to the end of the artists sublist or to the end of the playlist
      * @param Track $track
      *
      * @return bool
@@ -123,6 +131,9 @@ class Playlist extends Model
 
     /**
      * @return void
+     * This flag is used to restrict the model from being updated or created outside
+     * of this scope, to prevent incorrect position, playing or artist_id.
+     * This is only one of the possible solutions, but it's enough for this task
      */
     protected static function boot(): void
     {
