@@ -12,6 +12,11 @@ class Playlist extends Model
     use HasFactory;
 
     /**
+     * @var false
+     */
+    private static bool $locked = true;
+
+    /**
      * @var bool
      */
     public $timestamps = false;
@@ -44,7 +49,7 @@ class Playlist extends Model
             if (!$playlistItem) {
                 throw new \Exception('Track not found in the queue.');
             }
-
+            self::$locked = false;
             //Need to stop playing all tracks before starting new one
             self::stopPlaying();
 
@@ -54,6 +59,7 @@ class Playlist extends Model
         } catch (\Exception $e) {
             DB::rollBack();
         }
+        self::$locked = true;
         return $result;
     }
 
@@ -84,8 +90,9 @@ class Playlist extends Model
         if (count($maxPositionByArtists)) {
             $position = $maxPositionByArtists[$track->artist_id] ?? current($maxPositionByArtists);
         }
-        
+
         DB::beginTransaction();
+        self::$locked = false;
         try {
             // Increment position for all tracks after the added one
             $position++;
@@ -100,9 +107,9 @@ class Playlist extends Model
             DB::commit();
             return true;
         } catch (\Exception $e) {
-            var_dump($e->getMessage());
             DB::rollBack();
         }
+        self::$locked = true;
         return false;
     }
 
@@ -112,6 +119,18 @@ class Playlist extends Model
     public static function getPlayingTrack(): ?self
     {
         return self::where('playing', 1)->first();
+    }
+
+    /**
+     * @return void
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::updating(fn() => !self::$locked);
+
+        static::creating(fn() => !self::$locked);
     }
 
     /**
