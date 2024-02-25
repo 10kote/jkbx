@@ -24,6 +24,10 @@ class Playlist extends Model
      * @var array
      */
     protected $with = ['track'];
+    /**
+     * @var string[]
+     */
+    protected $fillable = ['track_id', 'artist_id', 'position'];
 
     /**
      * @param Track $track
@@ -60,7 +64,7 @@ class Playlist extends Model
      */
     public static function stopPlaying(): bool
     {
-        return self::query()->update(['playing' => false]);
+        return self::query()->update(['playing' => 0]);
     }
 
     /**
@@ -80,21 +84,23 @@ class Playlist extends Model
         if (count($maxPositionByArtists)) {
             $position = $maxPositionByArtists[$track->artist_id] ?? current($maxPositionByArtists);
         }
+        
         DB::beginTransaction();
         try {
+            // Increment position for all tracks after the added one
+            $position++;
+            Playlist::where('position', '>=', $position)->where('track_id', '<>', $track->id)->increment('position');
             if (!self::create([
                                   'track_id'  => $track->id,
                                   'artist_id' => $track->artist_id,
-                                  'position'  => ++$position,
+                                  'position'  => $position,
                               ])) {
                 throw new \Exception('Failed to add track to the queue.');
             }
-
-            // Increment position for all tracks after the added one
-            Playlist::where('position', '>=', $position)->where('track_id', '<>', $track->id)->increment('position');
             DB::commit();
             return true;
         } catch (\Exception $e) {
+            var_dump($e->getMessage());
             DB::rollBack();
         }
         return false;
@@ -105,7 +111,7 @@ class Playlist extends Model
      */
     public static function getPlayingTrack(): ?self
     {
-        return self::where('playing', false)->first();
+        return self::where('playing', 1)->first();
     }
 
     /**

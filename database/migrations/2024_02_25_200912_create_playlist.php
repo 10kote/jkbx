@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id()->unique();
             $table->unsignedBigInteger('track_id');
             $table->unsignedBigInteger('artist_id');
-            $table->unsignedInteger('position')->unique();
+            $table->unsignedInteger('position');
             $table->boolean('playing')->default(false);
             $table->foreign('track_id')->references('id')->on('tracks');
             $table->foreign('artist_id')->references('id')->on('artists');
