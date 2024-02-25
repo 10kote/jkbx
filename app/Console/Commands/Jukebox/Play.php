@@ -28,7 +28,7 @@ class Play extends Command implements PromptsForMissingInput
      */
     public function handle()
     {
-        $trackIds = array_map('intval', $this->argument('trackId'));
+        $trackIds = array_unique(array_map('intval', array_unique($this->argument('trackId'))));
         $tracks = Track::find($trackIds);
 
         if ($tracks->isEmpty()) {
@@ -55,7 +55,13 @@ class Play extends Command implements PromptsForMissingInput
         $existingTrackIds = $tracksInQueue->pluck('track_id')->toArray();
         $tracksToAddIds = array_diff($tracksToAddIds, $existingTrackIds);
 
-        foreach ($tracks->only($tracksToAddIds) as $track) {
+        foreach ($tracksToAddIds as $trackId) {
+            $track = $tracks->find($trackId);
+            if ($track === null) {
+                $this->error("Track with ID {$trackId} not found.");
+                continue;
+            }
+
             if (Playlist::addTrack($track)) {
                 $this->info("{$track->info} - has been added to the queue.");
             } else {
