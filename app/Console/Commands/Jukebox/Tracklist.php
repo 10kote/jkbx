@@ -34,7 +34,7 @@ class Tracklist extends Command
             return;
         }
         foreach ($tracks as $track) {
-            $this->info("{$track->id}: {$track->title} by {$track->artist->name}");
+            $this->info("{$track->info}");
         }
     }
 }

@@ -37,7 +37,7 @@ class TracklistCommandTest extends TestCase
         $cmdOutput = $this->artisan('jukebox:list');
         $cmdOutput->doesntExpectOutput(TrackList::EMPTY_TRACK_LIST)->assertExitCode(0);
         foreach ($tracks as $track) {
-            $cmdOutput->expectsOutputToContain("{$track->title} by {$track->artist->name}");
+            $cmdOutput->expectsOutputToContain("{$track->info}");
         }
 
     }
