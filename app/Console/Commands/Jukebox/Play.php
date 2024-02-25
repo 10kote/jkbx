@@ -56,8 +56,11 @@ class Play extends Command implements PromptsForMissingInput
         $tracksToAddIds = array_diff($tracksToAddIds, $existingTrackIds);
 
         foreach ($tracks->only($tracksToAddIds) as $track) {
-            //@todo: add track to the queue
-            $this->info("{$track->info} - has been added to the queue.");
+            if (Playlist::addTrack($track)) {
+                $this->info("{$track->info} - has been added to the queue.");
+            } else {
+                $this->error("{$track->info} - unable to add to the queue.");
+            }
         }
 
         if (Playlist::startPlaying($trackToPlay)) {

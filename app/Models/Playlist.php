@@ -64,6 +64,51 @@ class Playlist extends Model
     }
 
     /**
+     * Add track to the playlist
+     * Find highest position for the artists and add track to the end of the artists sublist
+     * @param Track $track
+     *
+     * @return bool
+     */
+    public static function addTrack(Track $track): bool
+    {
+        $maxPositionByArtists = self::select('artist_id', DB::raw('MAX(position) as position_max'))
+                                    ->groupBy('artist_id')
+                                    ->orderByDesc('position_max')
+                                    ->get()->pluck('position_max', 'artist_id')->toArray();
+        $position = 0;
+        if (count($maxPositionByArtists)) {
+            $position = $maxPositionByArtists[$track->artist_id] ?? current($maxPositionByArtists);
+        }
+        DB::beginTransaction();
+        try {
+            if (!self::create([
+                                  'track_id'  => $track->id,
+                                  'artist_id' => $track->artist_id,
+                                  'position'  => ++$position,
+                              ])) {
+                throw new \Exception('Failed to add track to the queue.');
+            }
+
+            // Increment position for all tracks after the added one
+            Playlist::where('position', '>=', $position)->where('track_id', '<>', $track->id)->increment('position');
+            DB::commit();
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+        }
+        return false;
+    }
+
+    /**
+     * @return self|null
+     */
+    public static function getPlayingTrack(): ?self
+    {
+        return self::where('playing', false)->first();
+    }
+
+    /**
      * @return BelongsTo
      */
     public function track()

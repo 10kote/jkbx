@@ -26,7 +26,7 @@ class Playing extends Command
      */
     public function handle()
     {
-        $queueItem = Playlist::where('playing', true)->first();
+        $queueItem = Playlist::getPlayingTrack();
         if ($queueItem) {
             $this->info("{$queueItem->track->info}");
         } else {
